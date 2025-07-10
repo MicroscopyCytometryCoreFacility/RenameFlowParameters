@@ -51,10 +51,9 @@ rename_fcs_parameters <- function(fcs, names.map) {
 
 rename_fcs_spillover <- function(fcs, names.map, spillover_param) {
   ret <- fcs
-  spillover_param <- spillover_param
   old.names <- colnames(ret@description[[spillover_param]])
   if (length(old.names) == 0) {
-    cat("\nWarning: Spillover Parameter", SPILLOVER_PARAM, "not found in fcs file. Make sure you set the right spillover parameter name at the top of the script. \
+    cat("\nWarning: Spillover Parameter", spillover_param, "not found in fcs file. Make sure you set the right spillover parameter name at the top of the script. \
         \nTo find the correct name, run the code 'names(fcs_input[[1]]@description)' and pick the correct parameter name containing the spillover table. \
         \nAttempting to use default names '$SPILL' or '$SPILLOVER', if the script fails immediately after this, neither of these was found either...\n")
     spillover_param <- names(ret@description)[grepl(pattern = "\\$SPILL", x = names(ret@description))]
