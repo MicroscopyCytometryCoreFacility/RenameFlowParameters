@@ -1,13 +1,15 @@
 # Script to rename parameters in .fcs files
 # Authors: Michael de Kok & Sara Garcia Garcia
 # Date: 18-11-2024
-# Last Updated: 03-04-2025
+# Last Updated: 10-07-2025
+# Version: 1.1
 
 ############################## USER PARAMETERS ############################## 
 setwd("") # Change to location of this file
 INPUT_FOLDER     <- "Input"
 OUTPUT_FOLDER    <- "Output"
 PARAMETER_TABLE <- "FCS_Rename_Parameters.xlsx"
+SPILLOVER_PARAM  <- "$SPILLOVER"    # Can differ between $SPILL or $SPILLOVER
 #############################################################################
 
 # Install Packages (only first time)
@@ -25,7 +27,7 @@ new_parameters  <- parameter_table$Output
 names(new_parameters) <- old_parameters
 
 # List FCS Files and set up lists
-fcs_files  <- list.files(path = INPUT_FOLDER, pattern = ".fcs", full.names = T)
+fcs_files  <- list.files(INPUT_FOLDER, pattern = ".fcs", full.names = T)
 fcs_input  <- list()
 fcs_output <- list()
 
@@ -47,9 +49,17 @@ rename_fcs_parameters <- function(fcs, names.map) {
   return(ret)
 }
 
-rename_fcs_spillover <- function(fcs, names.map) {
+rename_fcs_spillover <- function(fcs, names.map, spillover_param) {
   ret <- fcs
-  old.names <- colnames(ret@description$SPILL)
+  spillover_param <- spillover_param
+  old.names <- colnames(ret@description[[spillover_param]])
+  if (length(old.names) == 0) {
+    cat("\nWarning: Spillover Parameter", SPILLOVER_PARAM, "not found in fcs file. Make sure you set the right spillover parameter name at the top of the script. \
+        \nTo find the correct name, run the code 'names(fcs_input[[1]]@description)' and pick the correct parameter name containing the spillover table. \
+        \nAttempting to use default names '$SPILL' or '$SPILLOVER', if the script fails immediately after this, neither of these was found either...\n")
+    spillover_param <- names(ret@description)[grepl(pattern = "\\$SPILL", x = names(ret@description))]
+    old.names <- colnames(ret@description[[spillover_param]])
+  }
   new.names <- old.names
   ignored <- character()
   for (i in 1:length(old.names)) {
@@ -65,7 +75,7 @@ rename_fcs_spillover <- function(fcs, names.map) {
         "\nKeep in mind that if FlowJo shows parameters as '670_30', you need to put '670/30' in the sheet.")
   }
   stopifnot(!any(duplicated(new.names)))
-  colnames(ret@description$SPILL) <- new.names
+  colnames(ret@description[[spillover_param]]) <- new.names
   return(ret)
 }
 
@@ -83,7 +93,8 @@ for (file in fcs_files) {
   
   # Change Spillover names
   fcs_output[[file]] <- rename_fcs_spillover(fcs = fcs_output[[file]], 
-                                             names.map = new_parameters)
+                                             names.map = new_parameters,
+                                             spillover_param = SPILLOVER_PARAM)
   
   # Save FCS File
   filename <- sub(basename(file), pattern = ".fcs", replacement = "_conv.fcs")
